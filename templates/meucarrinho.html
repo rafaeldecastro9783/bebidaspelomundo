@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="container"></div>
+    <div class="row">
+        <div class="col-md-8">
+            <h4>Itens do Carrinho</h4>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Código:</th>
+                        <th>Produto:</th>
+                        <th>Preço:</th>
+                        <th>Quantidade:</th>
+                        <th>Preço Total:</th>
+                        <th>Ação:</th>
+                    </tr>
+                    <tbody>
+                            {% for kp in kart.kartproduto_set.all %}
+                            <tr>
+                                <td>{{ forloop.counter }} </td>
+                                <td>{{ kp.Produto.titulo }} </td>
+                                <td>{{ kp.total }} </td>
+                                <td>{{ kp.quantidade }} </td>
+                                <td>{{ kp.subtotal }} </td>
+                                <td>
+                                    <a href="{% url 'loja:editarmeukart' kp.id %}?acao=adc" class="btn btn-success"> + </a>
+                                    <a href="{% url 'loja:editarmeukart' kp.id %}?acao=rmv" class="btn btn-warning"> - </a>
+                                    <a href="{% url 'loja:editarmeukart' kp.id %}?acao=del" class="btn btn-danger"> x </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            
+                            <tr class="text-right">
+                                <th colspan="4" > Total a pagar</th>
+                                <th> R$: {{kart.total}}</th>
+                                {% if kart.kartproduto_set.all %}
+                                    <th class="text-right"><a href="{% url 'loja:finalizarcompra' %}" class="btn btn-info"> finalizar compra </a></th>
+                                {%endif%}
+                                {% if kart.kartproduto_set.all %}
+                                    <th class="text-right"><a href="{% url 'loja:limparcarro' %}" class="btn btn-danger"> limpar carrinho </a></th>
+                                {%endif%}
+                            </tr>
+                    </tbody>
+                </thead>
+            </table>
+        </div>
+    </div>
+
+{% endblock %}

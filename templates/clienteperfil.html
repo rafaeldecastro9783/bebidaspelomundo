@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="container"></div>
+    <div class="row">
+        <div class="col-md-6 mx-auto">
+            <h4>Perfil do Cliente</h4>
+            <br>
+            <p><span class="font-weight-bold">Nome:</span>{{cliente.nome_completo}}</p>
+            <p><span>Usuário:</span>{{cliente.user.username}}</p>
+            <p><span>Email:</span>{{cliente.user.email}}</p>
+            <p><span>Endereço:</span>{{cliente.endereco}}</p>
+            <p><span>Cadastrado em:</span>{{cliente.data_on}}</p>
+           
+        </div>
+        <div class="col-md-6 mx-auto">
+            <h4>Compras Anteriores</h4>
+            <br>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Pedido Id</th>
+                        <th>Valor</th>
+                        <th>Data do Pedido</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for pedido in pedidos %}
+                    <tr>
+                        <th>{{forloop.counter}}</th>
+                        <th><a href="{% url 'loja:clientepedidodetalhe' pedido.pk %}">pedido_{{pedido.id}}</th></a>
+                        <th>{{pedido.total}}</th>
+                        <th>{{pedido.data_on}}</th>
+                        <th>{{pedido.pedido_status}}</th>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+           
+        </div>
+    </div>
+
+{% endblock %}

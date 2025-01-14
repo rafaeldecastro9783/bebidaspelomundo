@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-6">
+            <h3>Itens do Carrinho</h3>
+            <th><a href="{% url 'loja:meukart' %}" class="btn btn-warning"> editar Carrinho </a></tr>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Código:</th>
+                        <th>Produto:</th>
+                        <th>Preço:</th>
+                        <th>Quantidade:</th>
+                        <th>Preço Total:</th>
+                    </tr>
+                    <tbody>
+                            {% for kp in kart.kartproduto_set.all %}
+                            <tr>
+                                <td>{{ forloop.counter }} </td>
+                                <td>{{ kp.Produto.titulo }} </td>
+                                <td>{{ kp.total }} </td>
+                                <td>{{ kp.quantidade }} </td>
+                                <td>{{ kp.subtotal }} </td>
+                            </tr>
+                            {% endfor %}
+                    </tbody>
+                    <tr>
+                    <th colspan="4" class="text-right"> valor total</th>
+                    <th> R$. {{kart.total}}</th>
+                    </tr>
+        </table>
+        </div>
+        <div class="col-md-6">
+            <h3>Checkout</h3>
+            <form action="" method="post">
+                {% csrf_token %}
+                {{ form.as_p }}
+                <button class="btn btn-info"> Comprar</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

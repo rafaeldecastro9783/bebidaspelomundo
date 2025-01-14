@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="container"></div>
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <h3>Detalhes do Pedido</h3>
+            <hr>
+            <p><span>pedido: </span>{{pedido_obj.id}}</p>
+            <p><span>Status do Pedido: </span>{{pedido_obj.pedido_status}}</p>
+            <p><span>Telefone: </span>{{pedido_obj.telefone}}</p>
+            <p><span>Email: </span>{{pedido_obj.email}}</p>
+            <p><span>Data do Pedido: </span>{{pedido_obj.data_on}}</p>
+            <p><span>Endereço de Envio: </span>{{pedido_obj.endereco_de_entrega}}</p>
+            <hr>
+            <h4>Produtos do Pedido</h4>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Item</th>
+                        <th>Quantidade</th>
+                        <th>preço Und</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cp in pedido_obj.kart.kartproduto_set.all %}
+                    <tr>
+                        <td>{{forloop.counter}}</td>
+                        <td>{{cp.produto.titulo}}</td>
+                        <td>{{cp.quantidade}}</td>
+                        <td>{{cp.total}}</td>
+                        <td>{{cp.subtotal}}</td>
+                    </tr>
+
+                    {% endfor %}
+                    <tr>
+                    <th colspan="4" class="text-right">Total do Pedido: </th>
+                    <th>R$ {{pedido_obj.subtotal}}</th>
+                    </tr>
+                </tbody>
+            </table>
+
+                       
+        </div>
+    </div>
+
+{% endblock %}

@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block content %}
+<style>
+    .errorlist {
+        color: red;
+        list-style: none;
+    }
+</style>
+
+<div class="container"></div>
+    <div class="row">
+        <div class="col-md-6 mx-auto">
+            <h4>Cadastro de Usuário</h4>
+            <form action="" method="post">
+                {% csrf_token %}
+                {{ form.as_p }}
+                <button class="btn btn-success"> Cadastar</button>
+            </form>
+            <p>Se já é cadastrado, faça:</p><a class="btn btn-info" href="/clienteentrar/">Login</a>
+        </div>
+    </div>
+
+{% endblock %}
