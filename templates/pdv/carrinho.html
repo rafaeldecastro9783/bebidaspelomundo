@@ -1,0 +1,56 @@
+{% extends "pdv/base_pdv.html" %}
+{% block title %}Carrinho{% endblock %}
+
+{% block content %}
+
+<form method="post" action="{% url 'loja:add_barcode' %}">
+    {% csrf_token %}
+    <input
+        type="text"
+        name="codigo_barras"
+        placeholder="Passe o código de barras"
+        autofocus
+    >
+</form>
+
+{% if kart and kart.kartproduto_set.all %}
+<table>
+    <thead>
+        <tr>
+            <th>Produto</th>
+            <th>Qtd</th>
+            <th>Subtotal</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in kart.kartproduto_set.all %}
+        <tr>
+            <td>{{ item.produto.titulo }}</td>
+            <td>{{ item.quantidade }}</td>
+            <td>R$ {{ item.subtotal|floatformat:2 }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<div class="total">
+    TOTAL: R$ {{ kart.total|floatformat:2 }}
+</div>
+
+<div style="margin-top:30px; display:flex; gap:20px;">
+    <a href="{% url 'loja:limparcarro' %}">
+        <button class="btn-danger">Cancelar</button>
+    </a>
+
+    <a href="{% url 'loja:pdv_pix' %}">
+        <button class="btn-primary">Pagar com PIX</button>
+    </a>
+</div>
+
+{% else %}
+<p style="font-size:22px; text-align:center;">
+    Aguardando leitura dos produtos...
+</p>
+{% endif %}
+
+{% endblock %}

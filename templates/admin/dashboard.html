@@ -1,0 +1,33 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<h1>📊 Dashboard do Mercado</h1>
+
+<div style="display:flex;gap:20px;flex-wrap:wrap;margin-top:20px;">
+
+  <div style="background:#d9534f;color:white;padding:20px;border-radius:8px;">
+    <h2>{{ produtos_sem_estoque }}</h2>
+    <p>Produtos sem estoque</p>
+  </div>
+
+  <div style="background:#f0ad4e;color:black;padding:20px;border-radius:8px;">
+    <h2>{{ produtos_estoque_baixo }}</h2>
+    <p>Estoque baixo</p>
+  </div>
+
+  <div style="background:#000;color:white;padding:20px;border-radius:8px;">
+    <h2>{{ lotes_vencidos }}</h2>
+    <p>Lotes vencidos</p>
+  </div>
+
+  <div style="background:#ffd966;color:black;padding:20px;border-radius:8px;">
+    <h2>{{ lotes_vencendo }}</h2>
+    <p>Lotes vencendo (7 dias)</p>
+  </div>
+
+  <div style="background:#5cb85c;color:white;padding:20px;border-radius:8px;">
+    <h2>{{ pix_pagos_hoje }}</h2>
+    <p>PIX pagos hoje</p>
+  </div>
+
+</div>
+{% endblock %}

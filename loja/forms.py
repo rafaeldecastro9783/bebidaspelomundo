@@ -1,42 +1,10 @@
 from django import forms
-from.models import ordemPedido, Cliente
+from.models import OrdemPedido, Cliente
 from django.db.models import fields
 from django.forms import ModelForm, TextInput, EmailInput, PasswordInput
-from input_mask.contrib.localflavor.br.widgets import BRPhoneNumberInput
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.contrib.auth.hashers import make_password
-
-
-class checar_ordem_Pedido(forms.ModelForm):
-    class Meta:
-        model = ordemPedido
-        fields = ["endereco_de_entrega", "telefone", "email", "cpf"]
-        widgets = {
-            'endereco_de_entrega': TextInput(attrs={
-                'class': 'form-control',
-                'style': 'max-width: 300px',
-                'placeholder': 'RUA EXEMPLO, NÚMERO, CIDADE, ESTADO + CEP'
-            }),
-            'email': EmailInput(attrs={
-                'class': 'form-control',
-                'style': 'max-width: 300px',
-                'placeholder': 'exemplo@exemplo.com'
-            }),
-            'telefone': TextInput(attrs={
-                'class': 'form-control',
-                'style': 'max-width: 300px',
-                'placeholder': 'telefone com ddd sem espaços'
-            }),
-            'cpf': TextInput(attrs={
-                'class': 'form-control',
-                'style': 'max-width: 300px',
-                'placeholder': 'xxx.xxx.xxx-xx'
-            }),
-
-        }
-
-
 
 class registrar_cliente_form(forms.ModelForm):
     username = forms.CharField(widget=forms.TextInput(attrs={'placeholder': 'Usuário', 'class': 'form-control', 'style': 'width : 300px; display : flex;'}))

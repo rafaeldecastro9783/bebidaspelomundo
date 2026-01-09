@@ -1,5 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import User
+import uuid
+from decimal import Decimal
+
 
 # Create your models here.
 
@@ -23,20 +26,58 @@ class Produto(models.Model):
     titulo = models.CharField(max_length=200)
     slug = models.SlugField(unique=True)
     categoria = models.ForeignKey(Categoria, on_delete=models.CASCADE)
+
+    codigo_barras = models.CharField(
+        max_length=50,
+        unique=True,
+        db_index=True,
+        help_text="Código de barras / QRCode do produto"
+    )
+
     imagem = models.ImageField(upload_to='produtos')
     imagem2 = models.ImageField(upload_to='produtos')
     imagem3 = models.ImageField(upload_to='produtos')
-    preco_compra = models.PositiveIntegerField()
-    preco_venda = models.PositiveIntegerField()
+    preco_compra = models.DecimalField(
+    max_digits=10,
+    decimal_places=2
+)
+
+    preco_venda = models.DecimalField(
+    max_digits=10,
+    decimal_places=2
+)
     descricao = models.TextField()
     visualizacao = models.PositiveIntegerField(default=0)
-    garantia = models.CharField(max_length=200, null=True, blank=True)
     devolucao = models.CharField(max_length=200)
-    estoque = models.PositiveIntegerField(default=0)
+    estoque = models.PositiveIntegerField(
+    default=0,
+    help_text="Estoque calculado a partir dos lotes"
+)
     avaliacao = models.PositiveIntegerField(default=0)
 
     def __str__(self):
-        return self.titulo
+        return f"{self.titulo} ({self.codigo_barras})"
+
+class LoteProduto(models.Model):
+    produto = models.ForeignKey(
+        Produto, on_delete=models.CASCADE, related_name="lotes"
+    )
+
+    codigo_lote = models.CharField(
+        max_length=50, blank=True, null=True
+    )
+
+    quantidade = models.PositiveIntegerField()
+    data_vencimento = models.DateField()
+
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    ativo = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"{self.produto.titulo} - Vence em {self.data_vencimento}"
+
+
     
 class Kart(models.Model):
     cliente = models.ForeignKey(Cliente, on_delete=models.SET_NULL,null=True, blank=True)
@@ -56,28 +97,103 @@ class KartProduto(models.Model):
     def __str__(self):
         return 'Kart:' + str(self.id) + "KartProduto:" + str(self.id)
     
+STATUS_CRIADO = "Pedido Criado"
+STATUS_AGUARDANDO = "Aguardando Pagamento"
+STATUS_PAGO = "Pagamento Aprovado"
+STATUS_CANCELADO = "Pedido Cancelado"
+
 PEDIDO_STATUS = (
-    ("Pedido Recebido", "Pedido Recebido"),
-    ("Aguardando Pagamento", "Aguardando Pagamento"),
-    ("Pagamento Aprovado", "Pagamento Aprovado"),
-    ("Pedido Enviado", "Pedido Enviado"),
-    ("Pedido Entregue", "Pedido Entregue"),
-    ("Pedido Cancelado", "Pedido Cancelado"),
+    (STATUS_CRIADO, "Pedido Criado"),
+    (STATUS_AGUARDANDO, "Aguardando Pagamento"),
+    (STATUS_PAGO, "Pagamento Aprovado"),
+    (STATUS_CANCELADO, "Pedido Cancelado"),
 )
 
-class ordemPedido(models.Model):
+
+class OrdemPedido(models.Model):
     kart = models.OneToOneField(Kart, on_delete=models.CASCADE)
-    endereco_de_entrega = models.CharField(max_length=200)
-    ordenado_por = models.CharField(max_length=200)
-    telefone = models.CharField(max_length=11, null=True, blank=True)
-    email = models.CharField(max_length=200, null=True, blank=True)
-    cpf = models.CharField(max_length=11, null=True, blank=True)
+
+    # Identificação da venda
+    codigo = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+
+    # Cliente (opcional no mercado autônomo)
+    cliente = models.ForeignKey(
+        Cliente, on_delete=models.SET_NULL, null=True, blank=True
+    )
+
+    # Totais
+    subtotal = models.PositiveIntegerField(default=0)
     desconto = models.PositiveIntegerField(default=0)
     total = models.PositiveIntegerField(default=0)
-    subtotal = models.PositiveIntegerField(default=0)
-    pedido_status = models.CharField(max_length=50, choices=PEDIDO_STATUS)
-    data_on = models.DateField(auto_now_add=True)
+
+    # Pagamento
+    pedido_status = models.CharField(
+    max_length=50,
+    choices=PEDIDO_STATUS,
+    default=STATUS_AGUARDANDO,
+    db_index=True
+)
+    metodo_pagamento = models.CharField(
+        max_length=30, default="PIX"
+    )
+
+    # Datas
+    criado_em = models.DateTimeField(auto_now_add=True)
+    pago_em = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
-        return 'ordemPedido:' + str(self.id)
+        return f"Pedido {self.codigo}"
+
+PAGAMENTO_STATUS = (
+    ("PENDENTE", "Pendente"),
+    ("PAGO", "Pago"),
+    ("EXPIRADO", "Expirado"),
+    ("CANCELADO", "Cancelado"),
+    ("ERRO", "Erro"),
+)
+
+class Pagamento(models.Model):
+    pedido = models.OneToOneField(
+        OrdemPedido, on_delete=models.CASCADE, related_name="pagamento"
+    )
+
+    # Gateway
+    gateway = models.CharField(
+        max_length=50,
+        default="pagarme"
+    )
+
+    # Identificadores do gateway
+    gateway_id = models.CharField(
+        max_length=100, blank=True, null=True
+    )
+    txid = models.CharField(
+        max_length=100, blank=True, null=True
+    )
+
+    # PIX
+    pix_qr_code = models.TextField(
+        blank=True, null=True
+    )
+    pix_qr_code_url = models.TextField(blank=True, null=True)
+    pix_expira_em = models.DateTimeField(
+        blank=True, null=True
+    )
+
+    # Status
+    status = models.CharField(
+        max_length=30,
+        choices=PAGAMENTO_STATUS,
+        default="PENDENTE",
+        db_index=True
+    )
+
+    # Datas
+    criado_em = models.DateTimeField(auto_now_add=True)
+    confirmado_em = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"Pagamento {self.id} - {self.status}"
+
+
 

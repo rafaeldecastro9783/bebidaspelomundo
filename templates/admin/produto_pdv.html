@@ -1,0 +1,81 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+
+<h1>📦 Cadastro / Estoque por Código de Barras</h1>
+
+<form method="get">
+    <input
+        type="text"
+        name="barcode"
+        placeholder="Escaneie ou digite o código de barras"
+        autofocus
+        style="font-size:18px;padding:10px;width:400px;"
+    >
+    <button class="button">Buscar</button>
+</form>
+
+<hr>
+
+<form method="post">
+{% csrf_token %}
+<input type="hidden" name="salvar_produto">
+
+<label>Código de barras</label>
+<input name="codigo_barras" value="{{ produto.codigo_barras|default:'' }}" required>
+
+<label>Nome</label>
+<input name="titulo" value="{{ produto.titulo|default:'' }}" required>
+
+<label>Categoria</label>
+<select name="categoria">
+{% for cat in categorias %}
+<option value="{{ cat.id }}" {% if produto.categoria_id == cat.id %}selected{% endif %}>
+{{ cat.titulo }}
+</option>
+{% endfor %}
+</select>
+
+<label>Preço compra</label>
+<input name="preco_compra" type="number" value="{{ produto.preco_compra|default:'' }}">
+
+<label>Preço venda</label>
+<input name="preco_venda" type="number" value="{{ produto.preco_venda|default:'' }}">
+
+<button class="button">💾 Salvar Produto</button>
+</form>
+
+{% if produto %}
+<hr>
+<h2>📦 Estoque por lote</h2>
+
+<form method="post">
+{% csrf_token %}
+<input type="hidden" name="add_lote">
+<input type="hidden" name="produto_id" value="{{ produto.id }}">
+
+<label>Lote</label>
+<input name="codigo_lote">
+
+<label>Quantidade</label>
+<input name="quantidade" type="number" required>
+
+<label>Data de vencimento</label>
+<input name="data_vencimento" type="date" required>
+
+<button class="button">➕ Adicionar Lote</button>
+</form>
+
+<h3>Estoque atual: {{ produto.estoque }}</h3>
+
+<ul>
+{% for lote in produto.lotes.all %}
+<li>
+    {{ lote.codigo_lote }} |
+    {{ lote.quantidade }} |
+    vence {{ lote.data_vencimento }}
+</li>
+{% endfor %}
+</ul>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,20 @@
+{% extends "pdv/base_pdv.html" %}
+{% block title %}Pagamento Confirmado{% endblock %}
+
+{% block content %}
+
+<h1 style="text-align:center; color:#28a745;">
+    ✅ Pagamento aprovado
+</h1>
+
+<p style="text-align:center; font-size:22px;">
+    Retire seus produtos.
+</p>
+
+<script>
+    setTimeout(() => {
+        window.location.href = "{% url 'loja:meukart' %}";
+    }, 5000);
+</script>
+
+{% endblock %}

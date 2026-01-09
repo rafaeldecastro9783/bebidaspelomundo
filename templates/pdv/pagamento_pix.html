@@ -1,0 +1,27 @@
+{% extends "pdv/base_pdv.html" %}
+{% block title %}Pagamento PIX{% endblock %}
+
+{% block content %}
+
+<p><strong>Pedido:</strong> {{ pedido.codigo }}</p>
+<p><strong>Valor:</strong> R$ {{ pedido.total }}</p>
+
+<h2 style="text-align:center;">Escaneie para pagar</h2>
+
+<div style="text-align:center; margin-top:30px;">
+    <img src="{{ pagamento.pix_qr_code_url }}" alt="QR Code PIX" />
+</div>
+
+<p style="text-align:center; font-size:18px; margin-top:20px;">
+    Aguardando confirmação do pagamento...
+</p>
+
+<p><small>Expira em: {{ pagamento.pix_expira_em }}</small></p>
+
+<script>
+    setInterval(() => {
+        location.reload();
+    }, 5000);
+</script>
+
+{% endblock %}

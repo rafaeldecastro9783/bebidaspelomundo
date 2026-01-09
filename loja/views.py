@@ -3,20 +3,37 @@ from django.http import HttpResponse
 from django.views.generic import View, TemplateView, CreateView, FormView, DetailView
 from.models import *
 from django.urls import reverse_lazy
-from .forms import checar_ordem_Pedido, registrar_cliente_form, ClienteEntrarForm
+from .forms import registrar_cliente_form, ClienteEntrarForm
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
+from django.utils import timezone
+from django.views import View
+from django.http import Http404
+from loja.services.pagarme import criar_pix_pagarme
+import json
+from django.views.decorators.csrf import csrf_exempt
+from loja.services.estoque import baixar_estoque_por_lote, EstoqueInsuficiente
+
+
 
 
 class lojaMixIn(object):
     def dispatch(self, request, *args, **kwargs):
         kart_id = request.session.get("kart_id")
+
         if kart_id:
             kart_obj = Kart.objects.get(id=kart_id)
-            if request.user.is_authenticated and request.user.cliente:
-                kart_obj.cliente = request.user.cliente
-                kart_obj.save()
+
+            if request.user.is_authenticated:
+                try:
+                    kart_obj.cliente = request.user.cliente
+                    kart_obj.save()
+                except Cliente.DoesNotExist:
+                    # Mercado autônomo / admin / PDV
+                    pass
+
         return super().dispatch(request, *args, **kwargs)
+
 
 
 class indexView (lojaMixIn, TemplateView):
@@ -110,15 +127,18 @@ class proudutoDetalheView(lojaMixIn, TemplateView):
 
     
 class meuKartView(lojaMixIn, TemplateView):
-    template_name = "meucarrinho.html"
+    template_name = "pdv/carrinho.html"
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        kart_id = self.request.session.get('kart_id', None)
+
+        kart_id = self.request.session.get("kart_id")
+        kart = None
+
         if kart_id:
-            kart = Kart.objects.get(id=kart_id)
-        else:
-            kart = None
-        context['kart'] = kart
+            kart = Kart.objects.filter(id=kart_id).first()
+
+        context["kart"] = kart
         return context
     
     
@@ -174,39 +194,39 @@ class limparCarroView (lojaMixIn, View):
             kart.save()
         return redirect("loja:meukart")
 
-class finalizarCompraView (lojaMixIn, CreateView):
-    template_name = "checkout.html"
-    form_class = checar_ordem_Pedido
-    success_url = reverse_lazy('loja:index')
-    def dispatch(self, request, *args, **kwargs):
-        if not (request.user.is_authenticated and hasattr(request.user, 'cliente')):
-            return redirect("/clienteentrar/?next=/finalizarcompra")
-        return super().dispatch(request, *args, **kwargs)
+# class finalizarCompraView (lojaMixIn, CreateView):
+#     template_name = "checkout.html"
+#     # form_class = checar_ordem_Pedido
+#     success_url = reverse_lazy('loja:index')
+#     def dispatch(self, request, *args, **kwargs):
+#         if not (request.user.is_authenticated and hasattr(request.user, 'cliente')):
+#             return redirect("/clienteentrar/?next=/finalizarcompra")
+#         return super().dispatch(request, *args, **kwargs)
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        kart_id = self.request.session.get('kart_id', None)
-        if kart_id:
-            kart_obj = Kart.objects.get(id=kart_id)
-        else:
-            kart_obj = None
-        context['kart'] = kart_obj
-        return context
+#     def get_context_data(self, **kwargs):
+#         context = super().get_context_data(**kwargs)
+#         kart_id = self.request.session.get('kart_id', None)
+#         if kart_id:
+#             kart_obj = Kart.objects.get(id=kart_id)
+#         else:
+#             kart_obj = None
+#         context['kart'] = kart_obj
+#         return context
     
-    def form_valid(self, form):
-        kart_id = self.request.session.get("kart_id")
-        if kart_id:
-            kart_obj = Kart.objects.get(id=kart_id)
-            form.instance.kart = kart_obj
-            form.instance.desconto = 0
-            form.instance.ordenado_por = self.request.user
-            form.instance.pedido_status = 'Pedido Recebido'
-            form.instance.total = kart_obj.total
-            form.instance.subtotal = kart_obj.total
-            del self.request.session['kart_id']
-        else:
-            return redirect("loja:index")
-        return super().form_valid(form)
+#     def form_valid(self, form):
+#         kart_id = self.request.session.get("kart_id")
+#         if kart_id:
+#             kart_obj = Kart.objects.get(id=kart_id)
+#             form.instance.kart = kart_obj
+#             form.instance.desconto = 0
+#             form.instance.ordenado_por = self.request.user
+#             form.instance.pedido_status = 'Pedido Recebido'
+#             form.instance.total = kart_obj.total
+#             form.instance.subtotal = kart_obj.total
+#             del self.request.session['kart_id']
+#         else:
+#             return redirect("loja:index")
+#         return super().form_valid(form)
 
 class registrarView(CreateView):
     template_name = "registrar.html"
@@ -267,13 +287,13 @@ class ClientePerfilView(TemplateView):
         context = super().get_context_data(**kwargs)
         cliente = self.request.user.cliente
         context['cliente']=cliente
-        pedidos = ordemPedido.objects.filter(kart__cliente=cliente)
+        pedidos = OrdemPedido.objects.filter(kart__cliente=cliente)
         context['pedidos']=pedidos
         return context
 
 class ClientePedidoDetalheView(DetailView):
     template_name = "clientepedidodetalhe.html"
-    model = ordemPedido
+    model = OrdemPedido
     context_object_name = 'pedido_obj'
     def dispatch(self, request, *args, **kwargs):
         if not (request.user.is_authenticated and hasattr(request.user, 'cliente')):
@@ -287,4 +307,166 @@ class sobreView (lojaMixIn, TemplateView):
 
 class contatoView(lojaMixIn, TemplateView):
     template_name = "contato.html"
+
+class AdicionarPorCodigoBarrasView(lojaMixIn, View):
+    def post(self, request):
+        codigo = request.POST.get("codigo_barras")
+
+        if not codigo:
+            messages.error(request, "Código de barras inválido.")
+            return redirect("loja:meukart")
+
+        try:
+            produto = Produto.objects.get(codigo_barras=codigo)
+        except Produto.DoesNotExist:
+            messages.error(request, "Produto não encontrado.")
+            return redirect("loja:meukart")
+
+        # Obtém ou cria carrinho
+        kart_id = request.session.get("kart_id")
+        if kart_id:
+            kart = Kart.objects.get(id=kart_id)
+        else:
+            kart = Kart.objects.create(total=0)
+            request.session["kart_id"] = kart.id
+
+        # Adiciona ou incrementa produto
+        item, criado = KartProduto.objects.get_or_create(
+            kart=kart,
+            produto=produto,
+            defaults={
+                "quantidade": 1,
+                "total": produto.preco_venda,
+                "subtotal": produto.preco_venda,
+            }
+        )
+
+        if not criado:
+            item.quantidade += 1
+            item.subtotal += produto.preco_venda
+            item.save()
+        else:
+            item.save()
+
+        kart.total += produto.preco_venda
+        kart.save()
+
+        return redirect("loja:meukart")
+
+
+class FinalizarPagamentoPIXView(lojaMixIn, View):
+    template_name = "pdv/pagamento_pix.html"
+
+    def get(self, request):
+        kart_id = request.session.get("kart_id")
+        if not kart_id:
+            return redirect("loja:index")
+
+        kart = get_object_or_404(Kart, id=kart_id)
+
+        pedido, _ = OrdemPedido.objects.get_or_create(
+            kart=kart,
+            defaults={
+                "cliente": kart.cliente,
+                "subtotal": kart.total,
+                "total": kart.total,
+                "pedido_status": STATUS_AGUARDANDO,
+                "metodo_pagamento": "PIX",
+            }
+        )
+
+        pagamento, _ = Pagamento.objects.get_or_create(
+            pedido=pedido,
+            defaults={
+                "gateway": "pagarme",
+                "status": "PENDENTE",
+            }
+        )
+
+        # 🔒 IDMPOTÊNCIA PIX
+        if not pagamento.gateway_id:
+            data = criar_pix_pagarme(pedido)
+
+            charge = data["charges"][0]
+            transaction = charge.get("last_transaction")
+
+            if not transaction or transaction.get("status") != "waiting_payment":
+                messages.error(request, "PIX não disponível.")
+                return redirect("loja:meukart")
+
+            pagamento.gateway_id = data["id"]                     # order id
+            pagamento.txid = transaction["id"]                    # transaction id
+            pagamento.pix_qr_code = transaction["qr_code"]        # string
+            pagamento.pix_qr_code_url = transaction["qr_code_url"]
+            pagamento.pix_expira_em = timezone.make_aware(
+                timezone.datetime.fromisoformat(
+                    transaction["expires_at"].replace("Z", "")
+                )
+            )
+            pagamento.save()
+
+        return render(request, self.template_name, {
+            "pedido": pedido,
+            "pagamento": pagamento
+        })
+
+
+@csrf_exempt
+def webhook_pagarme(request):
+    if request.method != "POST":
+        return HttpResponse(status=405)
+
+    if not request.body:
+        # Webhook vazio (teste do pagar.me ou ping)
+        return HttpResponse(status=200)
+
+    try:
+        payload = json.loads(request.body)
+    except json.JSONDecodeError:
+        return HttpResponse(status=400)
+
+    # DEBUG TEMPORÁRIO (recomendo deixar agora)
+    print("WEBHOOK RECEBIDO:", payload)
+
+    if payload.get("type") != "order.paid":
+        return HttpResponse(status=200)
+
+    order_id = payload["data"]["id"]
+
+    try:
+        pagamento = Pagamento.objects.select_related("pedido").get(
+            gateway_id=order_id
+        )
+    except Pagamento.DoesNotExist:
+        return HttpResponse(status=404)
+
+    # Idempotência
+    if pagamento.status == "PAGO":
+        return HttpResponse(status=200)
+
+    pagamento.status = "PAGO"
+    pagamento.confirmado_em = timezone.now()
+    pagamento.save()
+
+    pedido = pagamento.pedido
+    pedido.pedido_status = STATUS_PAGO
+    pedido.pago_em = timezone.now()
+    pedido.save()
+
+    # 🔻 Baixa de estoque por lote
+    try:
+        for item in pedido.kart.kartproduto_set.all():
+            baixar_estoque_por_lote(
+                produto=item.produto,
+                quantidade=item.quantidade
+            )
+    except EstoqueInsuficiente as e:
+        print("ERRO ESTOQUE:", e)
+
+    # 🔻 Limpar carrinho
+    pedido.kart.kartproduto_set.all().delete()
+    pedido.kart.total = 0
+    pedido.kart.save()
+
+    return HttpResponse(status=200)
 

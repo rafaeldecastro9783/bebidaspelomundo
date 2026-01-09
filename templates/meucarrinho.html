@@ -35,8 +35,12 @@
                                 <th colspan="4" > Total a pagar</th>
                                 <th> R$: {{kart.total}}</th>
                                 {% if kart.kartproduto_set.all %}
-                                    <th class="text-right"><a href="{% url 'loja:finalizarcompra' %}" class="btn btn-info"> finalizar compra </a></th>
-                                {%endif%}
+                                    <th class="text-right">
+                                        <a href="{% url 'loja:pdv_pix' %}" class="btn btn-info">
+                                            Finalizar compra
+                                        </a>
+                                    </th>
+                                {% endif %}
                                 {% if kart.kartproduto_set.all %}
                                     <th class="text-right"><a href="{% url 'loja:limparcarro' %}" class="btn btn-danger"> limpar carrinho </a></th>
                                 {%endif%}

@@ -1,0 +1,34 @@
+{% extends "admin/base_site.html" %}
+
+{% block branding %}
+<h1 id="site-name">
+    🏪 Mercado Autônomo
+</h1>
+{% endblock %}
+
+{% block nav-global %}
+<div style="padding:10px;background:#2c3e50;">
+    <a href="{% url 'loja:admin_dashboard' %}" style="color:white;margin-right:15px;">
+        📊 Painel
+    </a>
+
+    <a href="{% url 'loja:admin_produto_pdv' %}" style="color:white;margin-right:15px;">
+        📦 Produtos / Estoque
+    </a>
+
+    <a href="{% url 'admin:produto_importar_csv' %}" style="color:white;margin-right:15px;">
+    📥 Importar CSV
+    </a>
+
+    <a href="/admin/" style="color:white;margin-right:15px;">
+        🧾 Cadastros
+    </a>
+
+    <a href="/" style="color:white;">
+        🔙 Site
+    </a>
+</div>
+{% endblock %}
+
+<a href=>
+<a href=>
